@@ -30,9 +30,19 @@ inline cudaError_t checkCuda(cudaError_t result, int s) {
 
 void sddmm_GPU(const Matrix S, const TiledMatrix tS, float *P, vector<float> W, vector<float> H) {
 
-    float *d_val, *d_W, *d_H, *d_W_t;
-    int *d_row_ptr, *d_col_ind, *d_row_ind, *d_tiled_ind, *d_lastIdx, *d_active_row, *d_lastIdx_block_tile,
-        *d_passive_row;
+    float *d_val; // 结果矩阵, device 端数据
+    float *d_W; // 稠密矩阵 W, device 端数据
+    float *d_H;// 稠密矩阵 H, device 端数据
+    float *d_W_t; // 没用过的数据
+
+    int *d_row_ptr; // 用法注释掉了
+    int *d_col_ind;
+    int *d_row_ind;
+    int *d_tiled_ind;  // 没用过的数据
+    int *d_lastIdx;
+    int *d_active_row;
+    int *d_lastIdx_block_tile;
+    int *d_passive_row;
 
     //***********Starting GPU****************
     checkCuda(cudaMalloc((void **) &d_W, k * S.n_rows * sizeof(float)), 0);
@@ -252,15 +262,15 @@ void preprocessing(const Matrix S) {
     int ntile_r = tiledS.ntile_r;
 
     /* Populate rhs dense matrices */
-    vector<float> W(S.n_rows * k);
-    vector<float> W_t(S.n_rows * k);
-    vector<float> H(S.n_cols * k);
-    vector<float> H_t(S.n_cols * k);
+    vector<float> W(S.n_rows * k); // 稠密矩阵 W, host 端数据
+    vector<float> W_t(S.n_rows * k); // 稠密矩阵 W, 可以注释掉的代码
+    vector<float> H(S.n_cols * k); // 稠密矩阵 H, host 端数据
+    vector<float> H_t(S.n_cols * k); // 稠密矩阵 H, 可以注释掉的代码
 
-    initial(W, S.n_rows, k);
-    initial(H, S.n_cols, k);
-    make_HTasH(H, H_t, S.n_cols, k);
-    make_HTasH(W, W_t, S.n_rows, k);
+    initial(W, S.n_rows, k); // 初始化稠密矩阵 W
+    initial(H, S.n_cols, k); // 初始化稠密矩阵 H
+    make_HTasH(H, H_t, S.n_cols, k); // 可能是按照 COO 格式拷贝, 结果后面没有用到???
+    make_HTasH(W, W_t, S.n_rows, k); // 可能是按照 COO 格式拷贝, 结果后面没有用到???
 
     int *row_holder = new int[S.n_rows];
 
