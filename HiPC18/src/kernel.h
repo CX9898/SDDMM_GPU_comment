@@ -18,7 +18,8 @@ __global__ void comp_kernel_COO(int const *__restrict__ row_ind,
                                 int sh_tile,
                                 int k_slc) {
     unsigned int tId = threadIdx.x; // 在当前线程块中的线程ID
-    unsigned int laneId = tId & 1; // 如果tid是偶数, laneID则是0; 如果tid是奇数, laneID则是1. 在后面的代码中作用在确保不同线程尅并行处理不同的数据段, 避免了线程之间的数据竞争
+    unsigned int
+        laneId = tId & 1; // 如果tid是偶数, laneID则是0; 如果tid是奇数, laneID则是1. 在后面的代码中作用在确保不同线程尅并行处理不同的数据段, 避免了线程之间的数据竞争
     unsigned int c = (blockIdx.x * blockDim.x + tId); // 唯一线程id, 结论是一个线程计算一个结果, c代表当前线程处理的结果矩阵的位置.
     int block_st = 0; // 用来指示当前线程块从哪个位置开始处理数据.保证每个线程块处理的数据区间是唯一的.保证每个线程块可以高效地并行处理数据.
     if (blockIdx.x == 0) block_st = tile_stIdx;
