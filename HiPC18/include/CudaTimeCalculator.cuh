@@ -1,9 +1,9 @@
 #pragma once
 
-class cudaTimeCalculator {
+class CudaTimeCalculator {
  public:
-  cudaTimeCalculator();
-  ~cudaTimeCalculator();
+  CudaTimeCalculator();
+  ~CudaTimeCalculator();
 
   void startClock();
   void endClock();
