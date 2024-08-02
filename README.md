@@ -26,7 +26,7 @@ Example:
 ```
 options:   
         -K rank/feature : set the rank 
-        -tile_size_X, tile_size_Y: tile/block size for W and H 
+        -tile_size_X, tile_size_Y: tile/block nnz for W and H 
 
        
 
