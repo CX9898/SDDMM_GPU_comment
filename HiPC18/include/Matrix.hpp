@@ -26,14 +26,13 @@ class SparseMatrix {
       return _col;
   }
 
-  // test
-  std::vector<int> &rowIndex() {
+  const std::vector<int> &rowIndex() const {
       return _rowIndex;
   }
-  std::vector<int> &colIndex() {
+  const std::vector<int> &colIndex() const {
       return _colIndex;
   }
-  std::vector<int> &values() {
+  const std::vector<int> &values() const {
       return _values;
   }
 
@@ -85,16 +84,16 @@ class Matrix {
 //      _row = col;
 //  }
 
-  std::vector<T> &values() {
+  const std::vector<T> &values() const {
       return _values;
   }
 
  private:
+  size_t _row;
+  size_t _col;
   size_t _size;
   MatrixOrder _matrixOrder;
   size_t _leadingDimension;
-  size_t _row;
-  size_t _col;
 
   std::vector<T> _values;
 };

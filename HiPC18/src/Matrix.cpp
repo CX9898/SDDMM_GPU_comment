@@ -36,8 +36,8 @@ bool SparseMatrix<float>::initializeFromMatrixMarketFile(const std::string &file
     _col = std::stoi(iterateOneWord(line, lineIter));
     _nnz = std::stoi(iterateOneWord(line, lineIter));
 
-    if(lineIter < line.size()){
-        std::cerr << "Error, Matrix Market file " << line <<  " line format is incorrect!" << std::endl;
+    if (lineIter < line.size()) {
+        std::cerr << "Error, Matrix Market file " << line << " line format is incorrect!" << std::endl;
     }
 
     _rowIndex.resize(_nnz);
@@ -51,8 +51,8 @@ bool SparseMatrix<float>::initializeFromMatrixMarketFile(const std::string &file
         const int col = std::stoi(iterateOneWord(line, lineIter));
         const float val = (float) std::stof(iterateOneWord(line, lineIter));
 
-        if(lineIter < line.size()){
-            std::cerr << "Error, Matrix Market file " << line <<  " line format is incorrect!" << std::endl;
+        if (lineIter < line.size()) {
+            std::cerr << "Error, Matrix Market file " << line << " line format is incorrect!" << std::endl;
         }
 
         _rowIndex[idx] = row;
@@ -65,4 +65,29 @@ bool SparseMatrix<float>::initializeFromMatrixMarketFile(const std::string &file
     inFile.close();
 
     return true;
+}
+
+template<typename T>
+bool Matrix<T>::initializeFromSparseMatrix(const SparseMatrix<T> &matrixS) {
+    _row = matrixS.row();
+    _col = matrixS.col();
+    const int size = matrixS.row() * matrixS.col();
+    _size = size;
+    _matrixOrder = MatrixOrder::row_major;
+    const int  ld = matrixS.col();
+    _leadingDimension = ld;
+
+    const auto &rowIndexS = matrixS.rowIndex();
+    const auto &colIndexS = matrixS.colIndex();
+    const auto &valuesS = matrixS.values();
+
+    _values.clear();
+    _values.resize(size);
+    for(int idx = 0; idx < matrixS.nnz(); ++idx){
+        const auto row = rowIndexS[idx];
+        const auto col = colIndexS[idx];
+        const auto val = valuesS[idx];
+
+        _values[row * ld + col] = val;
+    }
 }
