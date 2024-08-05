@@ -6,7 +6,8 @@ int mainTmp(int argc, char *argv[]);
 
 void preprocessing(const isratnisa::Matrix S,
                    const std::vector<float> &matrixAValues,
-                   const std::vector<float> &matrixBValues);
+                   const std::vector<float> &matrixBValues,
+                   float *matrixP);
 
 void sddmm_GPU(const isratnisa::Matrix S,
                const isratnisa::TiledMatrix tS,

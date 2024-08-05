@@ -15,7 +15,7 @@ const std::string fileName = ("nips.mtx");
 //const std::string fileName = ("test1.mtx");
 const std::string filePath = folderPath + fileName;
 
-int main() {
+int mainTmp() {
     const int K = 256;
 
     SparseMatrix<float> matrixS;
@@ -79,6 +79,7 @@ int main() {
     isratnisa::Matrix isratnisaMatrixS;
     isratnisaMatrixS.copyFromMatrix(matrixS);
 
-    preprocessing(isratnisaMatrixS, valuesA, valuesB);
+    float *valuesP_isratnisa = nullptr;
+    preprocessing(isratnisaMatrixS, valuesA, valuesB,valuesP_isratnisa);
     return 0;
 }

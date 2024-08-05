@@ -305,7 +305,7 @@ void preprocessing(const isratnisa::Matrix S,
 }
 
 // ~/CLionProjects/SDDMM_GPU_comment/dataset/nips.mtx 256 192 50000
-int mainTmp(int argc, char *argv[]) {
+int main(int argc, char *argv[]) {
 
     isratnisa::Matrix S;
 
@@ -319,7 +319,6 @@ int mainTmp(int argc, char *argv[]) {
     fp >> str;
     while (!isdigit(str[0])) {
         getline(fp, str);
-        printf("str : %s\n", str.data());
     }
 
     istringstream is(str);
@@ -345,7 +344,13 @@ int mainTmp(int argc, char *argv[]) {
     cout << "\nTilesize: X = " << tile_sizeX << ", tilesize: Y = " << tile_sizeY << ", TB: " << BLOCKSIZE << endl;
     S.nnz = idx;
 
-//    preprocessing(S);
+    vector<float> W(S.n_rows * k); // 稠密矩阵 W, host 端数据
+    vector<float> H(S.n_cols * k); // 稠密矩阵 H, host 端数据
+    initial(W, S.n_rows, k); // 初始化稠密矩阵 W
+    initial(H, S.n_cols, k); // 初始化稠密矩阵 H
+    float *matrixP = nullptr;
+
+    preprocessing(S,W,H,matrixP);
 }
 
 
