@@ -23,7 +23,7 @@ bool SparseMatrix<float>::initializeFromMatrixMarketFile(const std::string &file
     std::ifstream inFile;
     inFile.open(filePath, std::ios::in); // open file
     if (!inFile.is_open()) {
-        std::cout << "Error,file cannot be opened." << std::endl;
+        std::cout << "Error,Matrix Market file cannot be opened." << std::endl;
         return false;
     }
 
@@ -36,6 +36,10 @@ bool SparseMatrix<float>::initializeFromMatrixMarketFile(const std::string &file
     _col = std::stoi(iterateOneWord(line, lineIter));
     _nnz = std::stoi(iterateOneWord(line, lineIter));
 
+    if(lineIter < line.size()){
+        std::cerr << "Error, Matrix Market file " << line <<  " line format is incorrect!" << std::endl;
+    }
+
     _rowIndex.resize(_nnz);
     _colIndex.resize(_nnz);
     _values.resize(_nnz);
@@ -47,8 +51,8 @@ bool SparseMatrix<float>::initializeFromMatrixMarketFile(const std::string &file
         const int col = std::stoi(iterateOneWord(line, lineIter));
         const float val = (float) std::stof(iterateOneWord(line, lineIter));
 
-        if(lineIter != line.size()){
-            std::cerr << "Error, the file format is incorrect!" << std::endl;
+        if(lineIter < line.size()){
+            std::cerr << "Error, Matrix Market file " << line <<  " line format is incorrect!" << std::endl;
         }
 
         _rowIndex[idx] = row;
