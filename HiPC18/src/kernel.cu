@@ -7,10 +7,17 @@ const int WARP_SIZE = 32;
 
 using namespace nvcuda::wmma;
 
-__global__ void compSddmmCoo(const int M, const int N, const int K,
-                             const half *matrixA, const half *matrixB,
-                             const float *matrixS,
-                             float *matrixP) {
+__global__ void convertFp32ToFp16(const int n, const float *in, half *out) {
+    int idx = (int) (blockDim.x * blockIdx.x + threadIdx.x);
+    if (idx < n) {
+        out[idx] = in[idx];
+    }
+}
+
+__global__ void compSddmm(const int M, const int N, const int K,
+                          const half *matrixA, const half *matrixB,
+                          const float *matrixS,
+                          float *matrixP) {
     const int warpM = (int) (blockDim.x * blockIdx.x + threadIdx.x) / WARP_SIZE;
     const int warpN = (int) (blockDim.x * blockIdx.x + threadIdx.x);
 

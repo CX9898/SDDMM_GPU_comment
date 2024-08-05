@@ -8,7 +8,6 @@ enum MatrixOrder {
   col_major
 };
 
-
 /**
  * SparseMatrix class
  *
@@ -70,6 +69,19 @@ class Matrix {
   Matrix() = default;
   ~Matrix() = default;
 
+  Matrix(size_t row,
+         size_t col,
+         size_t size,
+         MatrixOrder matrixOrder,
+         size_t leadingDimension,
+         const std::vector<T> &values)
+      : _row(row),
+        _col(col),
+        _size(size),
+        _matrixOrder(matrixOrder),
+        _leadingDimension(leadingDimension),
+        _values(values) {}
+
   bool initializeFromSparseMatrix(const SparseMatrix<T> &matrixS);
   void changeMajorOrder();
 
@@ -88,22 +100,24 @@ class Matrix {
   size_t col() const {
       return _col;
   }
-
-//  void setSize(size_t size) {
-//      _size = size;
-//      _values.resize(size);
-//  }
-//  void setld(size_t ld) {
-//      _leadingDimension = ld;
-//  }
-//  void setRow(size_t row) {
-//      _row = row;
-//  }
-//  void setCol(size_t col) {
-//      _row = col;
-//  }
-
   const std::vector<T> &values() const {
+      return _values;
+  }
+
+  void setSize(size_t size) {
+      _size = size;
+      _values.resize(size);
+  }
+  void setld(size_t ld) {
+      _leadingDimension = ld;
+  }
+  void setRow(size_t row) {
+      _row = row;
+  }
+  void setCol(size_t col) {
+      _row = col;
+  }
+  std::vector<T> &setValues() {
       return _values;
   }
 
