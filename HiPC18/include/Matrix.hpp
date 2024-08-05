@@ -19,6 +19,10 @@ class SparseMatrix {
   SparseMatrix() = default;
   ~SparseMatrix() = default;
 
+  SparseMatrix(size_t row, size_t col, size_t nnz) : _row(row), _col(col), _nnz(nnz) {}
+  SparseMatrix(size_t row, size_t col, size_t nnz, const std::vector<int> &rowIndex, const std::vector<int> &colIndex)
+      : _row(row), _col(col), _nnz(nnz), _rowIndex(rowIndex), _colIndex(colIndex) {}
+
   /**
    * Initialize from MatrixMarket file.
    *
@@ -50,10 +54,14 @@ class SparseMatrix {
       return _values;
   }
 
+  std::vector<T> &setValues() {
+      return _values;
+  }
+
  private:
-  size_t _nnz;
   size_t _row;
   size_t _col;
+  size_t _nnz;
 
   std::vector<int> _rowIndex;
   std::vector<int> _colIndex;

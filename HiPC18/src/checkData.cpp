@@ -1,6 +1,6 @@
 #include <cstdio>
 
-#include "hostFunc.hpp"
+#include "host.hpp"
 #include "cudaErrorCheck.cuh"
 
 bool checkData(const int num, const float *data1, const float *data2) {

@@ -305,7 +305,7 @@ void preprocessing(const isratnisa::Matrix S,
 }
 
 // ~/CLionProjects/SDDMM_GPU_comment/dataset/nips.mtx 256 192 50000
-int main(int argc, char *argv[]) {
+int mainTmp(int argc, char *argv[]) {
 
     isratnisa::Matrix S;
 
@@ -350,7 +350,7 @@ int main(int argc, char *argv[]) {
     initial(H, S.n_cols, k); // 初始化稠密矩阵 H
     float *matrixP = nullptr;
 
-    preprocessing(S,W,H,matrixP);
+    preprocessing(S, W, H, matrixP);
 }
 
 

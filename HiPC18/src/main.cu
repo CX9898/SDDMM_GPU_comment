@@ -9,13 +9,14 @@
 #include "cudaErrorCheck.cuh"
 #include "cudaUtil.cuh"
 #include "CudaTimeCalculator.cuh"
+#include "host.hpp"
 
 const std::string folderPath("../../dataset/");
 const std::string fileName = ("nips.mtx");
 //const std::string fileName = ("test1.mtx");
 const std::string filePath = folderPath + fileName;
 
-int mainTmp() {
+int main() {
     const int K = 256;
 
     SparseMatrix<float> matrixS;
@@ -23,6 +24,7 @@ int mainTmp() {
 
     Matrix<float> matrixS2D;
     matrixS2D.initializeFromSparseMatrix(matrixS);
+    matrixS2D.changeMajorOrder();
 
     std::vector<float> valuesA(matrixS2D.row() * K);
     initial(valuesA, matrixS2D.row(), K);
@@ -74,12 +76,21 @@ int mainTmp() {
     std::cout << "Func compSddmm time : " << timeCalculator.getTime() << "ms" << std::endl;
 
     std::vector<float> valuesP(matrixS2D.size());
-    dev::D2H(valuesP.data(),valuesP_d,valuesP.size());
+    dev::D2H(valuesP.data(), valuesP_d, valuesP.size());
+
+    SparseMatrix<float> matrixP(matrixS.row(), matrixS.col(), matrixS.nnz(), matrixS.rowIndex(), matrixS.colIndex());
+    sddmm_CPU_COO(matrixA, matrixB, matrixS, matrixP);
+
+    std::cout << "matrixP.values() : " << std::endl;
+    for (int idx = 0; idx < matrixP.values().size(); ++idx) {
+        std::cout << matrixP.values()[idx] << " " << std::endl;
+    }
+    std::cout << std::endl;
 
     isratnisa::Matrix isratnisaMatrixS;
     isratnisaMatrixS.copyFromMatrix(matrixS);
 
     float *valuesP_isratnisa = nullptr;
-    preprocessing(isratnisaMatrixS, valuesA, valuesB,valuesP_isratnisa);
+    preprocessing(isratnisaMatrixS, valuesA, valuesB, valuesP_isratnisa);
     return 0;
 }
