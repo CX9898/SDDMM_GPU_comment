@@ -295,7 +295,7 @@ void preprocessing(const Matrix S) {
     sddmm_GPU(S, tiledS, P, W, H);
 
 }
-
+// ~/CLionProjects/SDDMM_GPU_comment/dataset/nips.mtx 256 192 50000
 int main(int argc, char *argv[]) {
 
     Matrix S;
