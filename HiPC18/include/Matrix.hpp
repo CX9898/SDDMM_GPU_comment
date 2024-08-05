@@ -8,11 +8,26 @@ enum MatrixOrder {
   col_major
 };
 
+
+/**
+ * SparseMatrix class
+ *
+ * Store in COO format.
+ **/
 template<typename T>
 class SparseMatrix {
  public:
   SparseMatrix() = default;
   ~SparseMatrix() = default;
+
+  /**
+   * Initialize from MatrixMarket file.
+   *
+   * MatrixMarket file format:
+   *    1) The first line describes the file format.
+   *    2) The second line has three numbers separated by a space: number of rows, number of columns, and number of non-zeros.
+   *    3) Each after line has three numbers separated by a space: current row, current column, and value.
+   **/
   bool initializeFromMatrixMarketFile(const std::string &filePath);
 
   size_t nnz() const {
@@ -32,7 +47,7 @@ class SparseMatrix {
   const std::vector<int> &colIndex() const {
       return _colIndex;
   }
-  const std::vector<int> &values() const {
+  const std::vector<T> &values() const {
       return _values;
   }
 
@@ -46,6 +61,9 @@ class SparseMatrix {
   std::vector<T> _values;
 };
 
+/**
+ * The default is row-major order, but if you want to switch to column-major order, call the changeMajorOrder function.
+ **/
 template<typename T>
 class Matrix {
  public:
@@ -53,6 +71,7 @@ class Matrix {
   ~Matrix() = default;
 
   bool initializeFromSparseMatrix(const SparseMatrix<T> &matrixS);
+  void changeMajorOrder();
 
   size_t size() const {
       return _size;
@@ -67,7 +86,7 @@ class Matrix {
       return _row;
   }
   size_t col() const {
-      return  _col;
+      return _col;
   }
 
 //  void setSize(size_t size) {

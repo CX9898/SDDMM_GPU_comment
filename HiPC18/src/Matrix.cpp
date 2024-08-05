@@ -47,8 +47,8 @@ bool SparseMatrix<float>::initializeFromMatrixMarketFile(const std::string &file
     int idx = 0;
     while (getline(inFile, line)) {
         lineIter = 0;
-        const int row = std::stoi(iterateOneWord(line, lineIter));
-        const int col = std::stoi(iterateOneWord(line, lineIter));
+        const int row = std::stoi(iterateOneWord(line, lineIter)) - 1;
+        const int col = std::stoi(iterateOneWord(line, lineIter)) - 1;
         const float val = (float) std::stof(iterateOneWord(line, lineIter));
 
         if (lineIter < line.size()) {
@@ -67,14 +67,14 @@ bool SparseMatrix<float>::initializeFromMatrixMarketFile(const std::string &file
     return true;
 }
 
-template<typename T>
-bool Matrix<T>::initializeFromSparseMatrix(const SparseMatrix<T> &matrixS) {
+template<>
+bool Matrix<float>::initializeFromSparseMatrix(const SparseMatrix<float> &matrixS) {
     _row = matrixS.row();
     _col = matrixS.col();
     const int size = matrixS.row() * matrixS.col();
     _size = size;
     _matrixOrder = MatrixOrder::row_major;
-    const int  ld = matrixS.col();
+    const int ld = matrixS.col();
     _leadingDimension = ld;
 
     const auto &rowIndexS = matrixS.rowIndex();
@@ -83,11 +83,51 @@ bool Matrix<T>::initializeFromSparseMatrix(const SparseMatrix<T> &matrixS) {
 
     _values.clear();
     _values.resize(size);
-    for(int idx = 0; idx < matrixS.nnz(); ++idx){
-        const auto row = rowIndexS[idx];
-        const auto col = colIndexS[idx];
+    for (int idx = 0; idx < matrixS.nnz(); ++idx) {
+        const int row = rowIndexS[idx];
+        const int col = colIndexS[idx];
         const auto val = valuesS[idx];
 
         _values[row * ld + col] = val;
     }
+
+    return true;
+}
+
+template<>
+void Matrix<float>::changeMajorOrder() {
+    const auto oldMajorOrder = _matrixOrder;
+    const auto oldLd = _leadingDimension;
+    const auto &oldValues = _values;
+
+    MatrixOrder newMatrixOrder;
+    size_t newLd;
+    std::vector<float> newValues(_size);
+    if (oldMajorOrder == MatrixOrder::row_major) {
+        newMatrixOrder = MatrixOrder::col_major;
+        newLd = _row;
+
+        for (int idx = 0; idx < oldValues.size(); ++idx) {
+            const int row = idx / oldLd;
+            const int col = idx % oldLd;
+            const auto val = oldValues[idx];
+
+            newValues[col * newLd + row] = val;
+        }
+    } else if (oldMajorOrder == MatrixOrder::col_major) {
+        newMatrixOrder = MatrixOrder::row_major;
+        newLd = _col;
+
+        for (int idx = 0; idx < _values.size(); ++idx) {
+            const int col = idx / oldLd;
+            const int row = idx % oldLd;
+            const auto val = _values[idx];
+
+            newValues[row * newLd + col] = val;
+        }
+    }
+
+    _matrixOrder = newMatrixOrder;
+    _leadingDimension = newLd;
+    _values = newValues;
 }
