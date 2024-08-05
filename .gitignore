@@ -3,3 +3,5 @@
 
 # 忽略所有构建的cmake-build文件夹
 **/cmake-build-*/
+
+**/build/
