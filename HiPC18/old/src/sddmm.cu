@@ -310,7 +310,6 @@ int main(int argc, char *argv[]) {
     fp >> str;
     while (!isdigit(str[0])) {
         getline(fp, str);
-        printf("str : %s\n", str.data());
     }
 
     istringstream is(str);
