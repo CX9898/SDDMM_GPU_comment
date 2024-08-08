@@ -310,7 +310,6 @@ int main(int argc, char *argv[]) {
     fp >> str;
     while (!isdigit(str[0])) {
         getline(fp, str);
-        printf("str : %s\n", str.data());
     }
 
     istringstream is(str);
@@ -318,6 +317,7 @@ int main(int argc, char *argv[]) {
     is >> S.n_cols;
     is >> S.nnz;
     cout << "\nMatrix info: " << " rows: " << S.n_rows << ", cols: " << S.n_cols << ", nnz: " << S.nnz << endl;
+    std::cout << "M : " << S.n_rows << ", N : " << S.n_cols << ", K = " << k << std::endl;
     long orig_nnz = S.nnz, rid = 0, cid = 0;
     float vid = 0;
 
