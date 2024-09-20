@@ -28,7 +28,12 @@ inline cudaError_t checkCuda(cudaError_t result, int s) {
     return result;
 }
 
-void sddmm_GPU(const Matrix S, const TiledMatrix tS, float *P, vector<float> W, vector<float> H) {
+void sddmm_GPU(const Matrix S,
+               const TiledMatrix tS,
+               float *P,
+               vector<float> W,
+               vector<float> H,
+               float *comp_kernel_COO_time) {
 
     float *d_val; // 结果矩阵, device 端数据
     float *d_W; // 稠密矩阵 W, device 端数据
@@ -99,7 +104,7 @@ void sddmm_GPU(const Matrix S, const TiledMatrix tS, float *P, vector<float> W, 
         cudaStreamCreate(&(stream[i]));
     }
 
-    float mili = 0, copyTime = 0;
+    float copyTime = 0;
 
     dim3 block(BLOCKSIZE, 1, 1), grid(1, 1, 1);
     sum = 0;
@@ -141,9 +146,9 @@ void sddmm_GPU(const Matrix S, const TiledMatrix tS, float *P, vector<float> W, 
     checkCuda(cudaEventRecord(stop), __LINE__);
     cudaEventSynchronize(stop);
     //cudaDeviceSynchronize();
-    checkCuda(cudaEventElapsedTime(&mili, start, stop), __LINE__);
+    checkCuda(cudaEventElapsedTime(comp_kernel_COO_time, start, stop), __LINE__);
     cudaDeviceSynchronize();
-    cout << "\nTime for SDDMM with K = " << k << " : " << mili << " ms" << endl;
+    cout << "\nTime for SDDMM with K = " << k << " : " << *comp_kernel_COO_time << " ms" << endl;
 
     //******** correctness check
     float GPU_tot = 0, CPU_tot = 0, CPU_tot_orig = 0;
@@ -279,11 +284,26 @@ void preprocessing(const Matrix S) {
     /*converting col sorted matrix to row sorted */
     //unsorted_make_CSR(rows, cols, vals, S.nnz, S.n_rows, S.n_cols, row_ptr);
 
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+
+    checkCuda(cudaEventRecord(start), __LINE__);
     //assuming sorted
     make_CSR(S.rows, S.cols, S.vals, S.nnz, S.n_rows, row_ptr, row_holder);
+    checkCuda(cudaEventRecord(stop), __LINE__);
+    cudaEventSynchronize(stop);
+    float make_CSR_time;
+    checkCuda(cudaEventElapsedTime(&make_CSR_time, start, stop), __LINE__);
+    cout << "\nmake_CSR_time = " << make_CSR_time << " ms" << endl;
 
+    checkCuda(cudaEventRecord(start), __LINE__);
     tiledS.max_active_row = rewrite_matrix_1D(S, tiledS, row_ptr, tile_sizeX, row_holder);
-
+    checkCuda(cudaEventRecord(stop), __LINE__);
+    cudaEventSynchronize(stop);
+    float rewrite_matrix_1D_time;
+    checkCuda(cudaEventElapsedTime(&rewrite_matrix_1D_time, start, stop), __LINE__);
+    cout << "\nrewrite_matrix_1D_time = " << rewrite_matrix_1D_time << " ms" << endl;
     // rewrite_col_sorted_matrix(row_ptr, rows, cols, vals, tS.rows, tS.cols, new_vals, S.nnz, 
     //S.n_rows, S.n_cols, tile_sizeX, tiled_ind, lastIdx_tile, BLOCKSIZE, tS.nnz);
 
@@ -291,8 +311,12 @@ void preprocessing(const Matrix S) {
     // sddmm_CPU_CSR(row_ptr, cols, vals, W, H, P);
     sddmm_CPU_COO(S.rows, S.cols, S.vals, W, H, P, S);
 
+    float *comp_kernel_COO_time = (float *) malloc(sizeof(float));
     /* GPU call */
-    sddmm_GPU(S, tiledS, P, W, H);
+    sddmm_GPU(S, tiledS, P, W, H, comp_kernel_COO_time);
+
+    float sum_time = make_CSR_time + rewrite_matrix_1D_time + *comp_kernel_COO_time;
+    std::cout << "Finished sum time = " << sum_time << " ms" << std::endl;
 
 }
 
