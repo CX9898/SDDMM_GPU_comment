@@ -328,6 +328,22 @@ int main(int argc, char *argv[]) {
     Matrix S;
 
     ifstream fp(argv[1]);
+//    char *filePath = nullptr;
+//    const char *folderPath = "../dataset/test/";
+//    const char *fileName = "matrix_5000_5000_125000";
+//    const char *fileFormat = ".mtx";
+//    strcat(filePath, folderPath);
+//    strcat(filePath, fileName);
+//    strcat(filePath, fileFormat);
+//
+//    Matrix S;
+//
+//    ifstream fp;
+//    if (argc > 1) {
+//        fp.open(argv[1]);
+//    } else{
+//        fp.open(filePath);
+//    }
     k = atoi(argv[2]);
     tile_sizeY = atoi(argv[3]);
     tile_sizeX = atoi(argv[4]);
