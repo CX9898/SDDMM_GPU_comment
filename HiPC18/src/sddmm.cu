@@ -317,7 +317,7 @@ void preprocessing(const Matrix S) {
 
     float other_time = make_CSR_time + rewrite_matrix_1D_time;
     std::cout << "other_time = " << other_time << " ms" << std::endl;
-
+    std::cout << "sddmm_time = " << *comp_kernel_COO_time << " ms" << std::endl;
     float sum_time = make_CSR_time + rewrite_matrix_1D_time + *comp_kernel_COO_time;
     std::cout << "Finished sum time = " << sum_time << " ms" << std::endl;
 
