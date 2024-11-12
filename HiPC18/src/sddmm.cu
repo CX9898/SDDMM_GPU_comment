@@ -290,6 +290,9 @@ void preprocessing(const Matrix S) {
 
     checkCuda(cudaEventRecord(start), __LINE__);
     //assuming sorted
+    // make_CSR():
+    // 创建CSR格式的矩阵, 返回的是 row_ptr 和 row_holder.
+    // row_ptr记录每一行的第一个元素的index, row_holder记录每一行的ID.
     make_CSR(S.rows, S.cols, S.vals, S.nnz, S.n_rows, row_ptr, row_holder);
     checkCuda(cudaEventRecord(stop), __LINE__);
     cudaEventSynchronize(stop);

@@ -14,37 +14,47 @@ inline double seconds() {
     return ((double) tp.tv_sec + (double) tp.tv_usec * 1.e-6);
 }
 
-int actv_row_size = 180;
+int actv_row_size = 180; // 每个块中活跃行数
 int SM_CAPACITY = 6144;
 int BLOCKSIZE = 512;
 
 class Matrix {
  public:
-  long n_rows, n_cols;
-  long nnz;
+  long n_rows; // 矩阵行数
+  long n_cols; // 矩阵列数
+  long nnz; // 非零元素个数
 
+  // COO格式
   vector<int> rows;
   vector<int> cols;
   vector<float> vals;
 
 };
 
+// 瓦片由多个块组成
+// 每个块由多个行组成, 行数为 `actv_row_size`
+
+// 瓦片矩阵
 class TiledMatrix {
  public:
-  int ntile_c;
-  int ntile_r;
-  int max_active_block;
-  int max_active_row;
-  long nnz;
+  int ntile_c; // 列方向的瓦片数
+  int ntile_r; // 行方向的瓦片数
+  int max_active_block; // 瓦片中最大活跃块数
+  int max_active_row; // 块中最大活跃行数
+  long nnz; // 非零元素个数
 
+  // COO格式 稀疏矩阵数据
   vector<int> rows;
   vector<int> cols;
   vector<float> vals;
-  vector<int> row_holder;
-  vector<int> active_row;
-  vector<int> lastIdx_block_tile;
-  vector<int> n_actv_row;
-  vector<int> lastIdx_tile;
+
+  vector<int> row_holder; // 记录每一行的ID, 但是这个变量没有用到, 在make_CSR函数中返回一个row_holder
+  vector<int> active_row; // 活跃行
+
+  vector<int> lastIdx_block_tile; // 储存每个块中最后一个元素的index
+  vector<int> n_actv_row; // 储存每个块中活跃行数
+
+  vector<int> lastIdx_tile; // 储存每个
   vector<int> tiled_ind;
 
   TiledMatrix(Matrix S, int tile_sizeX, int tile_sizeY) {
@@ -126,6 +136,7 @@ void unsorted_make_CSR(int *rows, int *cols, float *vals, long nnz, long n_rows,
 }
 // void make_tile(smat_t &R, mat_int &tiled_bin, const int TS)
 
+// 创建CSR格式的矩阵, row_ptr记录每一行的第一个元素的index, row_holder记录每一行的ID
 void make_CSR(vector<int> rows, vector<int> cols, vector<float> vals, long nnz,
               long n_rows, int *row_ptr, int *row_holder) {
     //assuming sorted
@@ -133,12 +144,12 @@ void make_CSR(vector<int> rows, vector<int> cols, vector<float> vals, long nnz,
     //if CSR
     long idx = 0, tot = 0;
     row_ptr[0] = 0;
-    int holder = 0;
-    int r = rows[idx];
+    int holder = 0; // 记录row_holder当前的位置
+    int r = rows[idx]; // 当前行ID
 
     while (idx < nnz) {
         row_holder[holder] = r;
-        while (rows[idx] == r && idx < nnz) {
+        while (rows[idx] == r && idx < nnz) { // 找到下一行的第一个元素的index
             idx++;
         }
         // tot += nnz_row[r];
@@ -263,7 +274,8 @@ void rewrite_col_sorted_matrix(int *row_ptr, int *row_ind, int *col_ind, float *
     new_nnz = nnz;
 }
 
-int rewrite_matrix_1D(const Matrix S, TiledMatrix &tS, int *row_ptr, int TS, int *row_holder) {
+// 返回最大的活跃行数, 并且
+int rewrite_matrix_1D(const Matrix S, TiledMatrix &tS, const int *row_ptr, const int TS, const int *row_holder) {
 
     long new_idx = 0, idx = 0;
     int max_block_inAtile = S.n_rows / actv_row_size + 1;
