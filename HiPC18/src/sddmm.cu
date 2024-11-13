@@ -15,8 +15,8 @@ using namespace std;
 
 // long n_rows, n_cols, nnz;
 
-int tile_sizeX = 256;
-int tile_sizeY = 25000;
+int tile_sizeX = 256; // 每个瓦片的列数
+int tile_sizeY = 25000; // 每个瓦片的行数
 int k = 100;
 
 inline cudaError_t checkCuda(cudaError_t result, int s) {
@@ -35,27 +35,27 @@ void sddmm_GPU(const Matrix S,
                vector<float> H,
                float *comp_kernel_COO_time) {
 
-    float *d_val; // 结果矩阵, device 端数据
-    float *d_W; // 稠密矩阵 W, device 端数据
-    float *d_H;// 稠密矩阵 H, device 端数据
-    float *d_W_t; // 没用过的数据
+    float *d_matrixP_val; // 结果矩阵, device 端数据
+    float *d_matrixA; // 稠密矩阵 A, device 端数据
+    float *d_matrixB;// 稠密矩阵 B, device 端数据
+//    float *d_W_t; // 没用过的数据
 
-    int *d_row_ptr; // 用法注释掉了
+//    int *d_row_ptr; // 用法注释掉了
     int *d_col_ind;
     int *d_row_ind;
-    int *d_tiled_ind;  // 没用过的数据
+//    int *d_tiled_ind;  // 没用过的数据
     int *d_lastIdx;
     int *d_active_row;
     int *d_lastIdx_block_tile;
     int *d_passive_row;
 
     //***********Starting GPU****************
-    checkCuda(cudaMalloc((void **) &d_W, k * S.n_rows * sizeof(float)), 0);
-    checkCuda(cudaMalloc((void **) &d_H, k * S.n_cols * sizeof(float)), 1);
+    checkCuda(cudaMalloc((void **) &d_matrixA, k * S.n_rows * sizeof(float)), 0);
+    checkCuda(cudaMalloc((void **) &d_matrixB, k * S.n_cols * sizeof(float)), 1);
     // checkCuda(cudaMalloc((void**)&d_row_ptr, (n_rows+1) * sizeof (int)),2);   
     checkCuda(cudaMalloc((void **) &d_row_ind, tS.nnz * sizeof(int)), 4);
     checkCuda(cudaMalloc((void **) &d_col_ind, tS.nnz * sizeof(int)), 4);
-    checkCuda(cudaMalloc((void **) &d_val, tS.nnz * sizeof(float)), 4);
+    checkCuda(cudaMalloc((void **) &d_matrixP_val, tS.nnz * sizeof(float)), 4);
     checkCuda(cudaMalloc((void **) &d_lastIdx, (tS.ntile_c + 1) * sizeof(float)), 4);
     checkCuda(cudaMalloc((void **) &d_active_row, tS.ntile_c * tS.max_active_row * sizeof(int)), 4);
     checkCuda(cudaMalloc((void **) &d_lastIdx_block_tile, tS.ntile_c * tS.max_active_block * sizeof(int)), 4);
@@ -65,7 +65,7 @@ void sddmm_GPU(const Matrix S,
     checkCuda(cudaMemcpy(d_row_ind, &(tS.rows[0]), tS.nnz * sizeof(int), cudaMemcpyHostToDevice), 4);
     checkCuda(cudaMemcpy(d_col_ind, &(tS.cols[0]), tS.nnz * sizeof(int), cudaMemcpyHostToDevice), 4);
     //checkCuda(cudaMemcpy(d_val, &(new_vals[0]), tS.nnz * sizeof (float), cudaMemcpyHostToDevice),4);
-    cudaMemset(d_val, 0, S.nnz * sizeof(float));
+    cudaMemset(d_matrixP_val, 0, S.nnz * sizeof(float));
     checkCuda(cudaMemcpy(d_lastIdx, &(tS.lastIdx_tile[0]), (tS.ntile_c + 1) * sizeof(int), cudaMemcpyHostToDevice), 4);
     for (int i = 0; i < tS.ntile_c; ++i) {
         checkCuda(cudaMemcpy(d_lastIdx_block_tile + i * tS.max_active_block,
@@ -89,12 +89,13 @@ void sddmm_GPU(const Matrix S,
     //     sum += S.n_rows;
     // }
 
-    cudaMemcpy(d_W, &(W[0]), S.n_rows * k * sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_matrixA, &(W[0]), S.n_rows * k * sizeof(float), cudaMemcpyHostToDevice);
     //cudaMemcpy(d_W, &(W_t[0]),  S.n_rows * k  * sizeof (float), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_H, &(H[0]), S.n_cols * k * sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_matrixB, &(H[0]), S.n_cols * k * sizeof(float), cudaMemcpyHostToDevice);
     //cudaMemcpy(d_H, &(H_t[0]),  S.n_cols * k  * sizeof (float), cudaMemcpyHostToDevice);  
 
 
+    // 按列分的瓦片数
     int n_tile = tS.ntile_c;//S.n_cols/tile_sizeX + 1;
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
@@ -110,33 +111,33 @@ void sddmm_GPU(const Matrix S,
     sum = 0;
     int t_st = 0;
 
-    int k_slice = SM_CAPACITY / actv_row_size;
+    int k_slice = SM_CAPACITY / actv_row_size; // 32
 
     checkCuda(cudaEventRecord(start), __LINE__);
 
     for (int tile = 0; tile < n_tile; ++tile) {
-        int nnz_tile = tS.lastIdx_tile[tile + 1] - tS.lastIdx_tile[tile];
+//        int nnz_tile = tS.lastIdx_tile[tile + 1] - tS.lastIdx_tile[tile];
         //grid.x = (nnz_tile + BLOCKSIZE - 1) / BLOCKSIZE;
         int active_block_this_tile = tS.n_actv_row[tile] / actv_row_size + 1;
 
-        grid.x = active_block_this_tile;
+        grid.x = active_block_this_tile; // 当前按列分的瓦片中再按行分的数量; 也就是一个线程块处理192行, 用总行数除以192
         for (int t_st = 0; t_st < k; t_st += k_slice) {
             comp_kernel_COO<<<grid, block, 0, stream[0]>>>(d_row_ind,
                                                            d_col_ind,
-                                                           d_val,
-                                                           d_W,
-                                                           d_H,
-                                                           S.nnz,
-                                                           S.n_rows,
-                                                           S.n_cols,
+                                                           d_matrixP_val, // 结果矩阵
+                                                           d_matrixA,
+                                                           d_matrixB,
+                                                           S.nnz, // 矩阵的非零元素个数, 注释掉了
+                                                           S.n_rows, // 矩阵的行数, 注释掉了
+                                                           S.n_cols, // 矩阵的列数, 注释掉了
                                                            k,
-                                                           tS.lastIdx_tile[tile],
-                                                           tS.lastIdx_tile[tile + 1],
+                                                           tS.lastIdx_tile[tile], // 按列分的瓦片的结束索引
+                                                           tS.lastIdx_tile[tile + 1], // 注释掉了
                                                            &(d_lastIdx_block_tile[(tile) * tS.max_active_block]),
                                                            d_active_row + sum,
-                                                           tile,
+                                                           tile, // 按列分的瓦片ID, 注释掉了
                                                            t_st,
-                                                           tS.n_actv_row[tile],
+                                                           tS.n_actv_row[tile], //
                                                            actv_row_size,
                                                            k_slice);
         }
@@ -153,7 +154,7 @@ void sddmm_GPU(const Matrix S,
     //******** correctness check
     float GPU_tot = 0, CPU_tot = 0, CPU_tot_orig = 0;
     float *p_ind_temp = new float[tS.nnz];
-    checkCuda(cudaMemcpy(&(p_ind_temp[0]), d_val, tS.nnz * sizeof(float), cudaMemcpyDeviceToHost), 4);;
+    checkCuda(cudaMemcpy(&(p_ind_temp[0]), d_matrixP_val, tS.nnz * sizeof(float), cudaMemcpyDeviceToHost), 4);;
     for (int i = 0; i < S.nnz; ++i) {
         CPU_tot += P[tS.tiled_ind[i]];
         CPU_tot_orig += P[i];
@@ -184,16 +185,16 @@ void sddmm_GPU(const Matrix S,
     cout << "diff values in CPU and GPU: " << diff_tot << endl;
 
     //freeing device allocation
-    cudaFree(d_row_ptr);
+//    cudaFree(d_row_ptr);
     cudaFree(d_row_ind);
     cudaFree(d_col_ind);
-    cudaFree(d_val);
+    cudaFree(d_matrixP_val);
     cudaFree(d_active_row);
     cudaFree(d_passive_row);
     cudaFree(d_lastIdx_block_tile);
     cudaFree(d_lastIdx);
-    cudaFree(d_W);
-    cudaFree(d_H);
+    cudaFree(d_matrixA);
+    cudaFree(d_matrixB);
 }
 
 void sddmm_CPU_CSR(int *row_ptr,
@@ -289,11 +290,13 @@ void preprocessing(const Matrix S) {
     cudaEventCreate(&stop);
 
     checkCuda(cudaEventRecord(start), __LINE__);
+
     //assuming sorted
     // make_CSR():
     // 创建CSR格式的矩阵, 返回的是 row_ptr 和 row_holder.
     // row_ptr记录每一行的第一个元素的index, row_holder记录每一行的ID.
     make_CSR(S.rows, S.cols, S.vals, S.nnz, S.n_rows, row_ptr, row_holder);
+
     checkCuda(cudaEventRecord(stop), __LINE__);
     cudaEventSynchronize(stop);
     float make_CSR_time;
@@ -301,7 +304,10 @@ void preprocessing(const Matrix S) {
     cout << "\nmake_CSR_time = " << make_CSR_time << " ms" << endl;
 
     checkCuda(cudaEventRecord(start), __LINE__);
+
+    // 重新排列矩阵, 使矩阵瓦片化
     rewrite_matrix_1D(S, tiledS, row_ptr, tile_sizeX, row_holder);
+
     checkCuda(cudaEventRecord(stop), __LINE__);
     cudaEventSynchronize(stop);
     float rewrite_matrix_1D_time;

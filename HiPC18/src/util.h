@@ -14,9 +14,9 @@ inline double seconds() {
     return ((double) tp.tv_sec + (double) tp.tv_usec * 1.e-6);
 }
 
-int actv_row_size = 180; // 每个块中活跃行数
-int SM_CAPACITY = 6144; // 
-int BLOCKSIZE = 512;
+int actv_row_size = 180; // 每个块中活跃行数, 输入设置为192
+const int SM_CAPACITY = 6144; //
+const int BLOCKSIZE = 512;
 
 class Matrix {
  public:
@@ -37,8 +37,8 @@ class Matrix {
 // 瓦片矩阵
 class TiledMatrix {
  public:
-  int ntile_c; // 列方向的瓦片数
-  int ntile_r; // 行方向的瓦片数
+  int ntile_c; // 按列分的瓦片数
+//  int ntile_r; // 按行分的瓦片数
   int max_active_block; // 瓦片中最大活跃块数
   int max_active_row; // 块中最大活跃行数
   long nnz; // 非零元素个数
@@ -49,17 +49,17 @@ class TiledMatrix {
   vector<float> vals;
 
   vector<int> row_holder; // 记录每一行的ID, 但是这个变量没有用到, 在make_CSR函数中返回一个row_holder
-  vector<int> active_row; // 活跃行
+  vector<int> active_row; // 活跃行, 大小为矩阵行数*按列分的瓦片数
 
   vector<int> lastIdx_block_tile; // 储存每个块中最后一个元素的index
-  vector<int> n_actv_row; // 储存每个块中活跃行数
+  vector<int> n_actv_row; // 储存每个块中活跃行数, 大小为按列分的瓦片数, 意味着值永远都是矩阵行数
 
-  vector<int> lastIdx_tile; // 储存每个
+  vector<int> lastIdx_tile; // 储存每个瓦片中最后一个元素的index, 大小为按列分的瓦片数
   vector<int> tiled_ind;
 
   TiledMatrix(Matrix S, int tile_sizeX, int tile_sizeY) {
       ntile_c = S.n_cols / tile_sizeX + 1;
-      ntile_r = S.n_rows / tile_sizeY + 1;
+//      ntile_r = S.n_rows / tile_sizeY + 1;
       max_active_block = (S.n_rows / actv_row_size + 1);
       lastIdx_block_tile.resize((ntile_c + 1) * (S.n_rows / actv_row_size + 1));
       lastIdx_tile.resize(ntile_c + 1);
@@ -275,7 +275,11 @@ void rewrite_col_sorted_matrix(int *row_ptr, int *row_ind, int *col_ind, float *
 }
 
 // 返回最大的活跃行数, 并且初始化瓦片矩阵tS
-int rewrite_matrix_1D(const Matrix S, TiledMatrix &tS, const int *row_ptr, const int TS, const int *row_holder) {
+int rewrite_matrix_1D(const Matrix S,
+                      TiledMatrix &tS,
+                      const int *row_ptr,
+                      const int TS, // 瓦片列大小
+                      const int *row_holder) {
 
     long new_idx = 0; // 初始化新矩阵的index
     long idx = 0; // 初始化原矩阵的index
@@ -283,17 +287,18 @@ int rewrite_matrix_1D(const Matrix S, TiledMatrix &tS, const int *row_ptr, const
 //    int n_tile = tS.ntile_c;
     int tile_no = 0; // 瓦片编号
     tS.lastIdx_tile[0] = 0;
-    unsigned char c[4];
+//    unsigned char c[4];
 //    int row = 0, col = 0;
 //    unsigned int final_int = 0, final_row, final_col;
-    long n_rows = S.n_rows;
-    long n_cols = S.n_cols;
+    long n_rows = S.n_rows; // 矩阵行数
+    long n_cols = S.n_cols; // 矩阵列数
     vector<int> row_lim(n_rows);
 
     // #pragma omp parallel for 
-    for (int tile_lim = TS; tile_lim <= (n_cols + TS - 1); tile_lim += TS) {
-        int block_count = 0;
-        int cur_block = 0, r = 0;
+    for (int tile_lim = TS; tile_lim <= (n_cols + TS - 1); tile_lim += TS) { // 遍历每个瓦片,
+        int block_count = 0; // 记录当前瓦片的块数
+        int cur_block = 0;
+        int r = 0;
         tile_no = tile_lim / TS;
         tS.n_actv_row[tile_no - 1] = 0;
 
@@ -351,7 +356,7 @@ int rewrite_matrix_1D(const Matrix S, TiledMatrix &tS, const int *row_ptr, const
         tS.lastIdx_tile[tile_no] = new_idx;
 
     }
-    tS.nnz = S.nnz;
+    tS.nnz = S.nnz; // 更新瓦片矩阵的非零元素个数
     return tS.max_active_row;
 }
 
