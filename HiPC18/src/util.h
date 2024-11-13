@@ -274,16 +274,18 @@ void rewrite_col_sorted_matrix(int *row_ptr, int *row_ind, int *col_ind, float *
     new_nnz = nnz;
 }
 
-// 返回最大的活跃行数, 并且
+// 返回最大的活跃行数, 并且初始化瓦片矩阵tS
 int rewrite_matrix_1D(const Matrix S, TiledMatrix &tS, const int *row_ptr, const int TS, const int *row_holder) {
 
-    long new_idx = 0, idx = 0;
-    int max_block_inAtile = S.n_rows / actv_row_size + 1;
-    int n_tile = tS.ntile_c, tile_no = 0;
+    long new_idx = 0; // 初始化新矩阵的index
+    long idx = 0; // 初始化原矩阵的index
+    int max_block_inAtile = S.n_rows / actv_row_size + 1; // 每个瓦片中最大的活跃块数
+//    int n_tile = tS.ntile_c;
+    int tile_no = 0; // 瓦片编号
     tS.lastIdx_tile[0] = 0;
     unsigned char c[4];
-    int row = 0, col = 0;
-    unsigned int final_int = 0, final_row, final_col;
+//    int row = 0, col = 0;
+//    unsigned int final_int = 0, final_row, final_col;
     long n_rows = S.n_rows;
     long n_cols = S.n_cols;
     vector<int> row_lim(n_rows);
