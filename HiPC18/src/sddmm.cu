@@ -263,19 +263,19 @@ void preprocessing(const Matrix S) {
     float *P = new float[S.nnz]; // output Matrix
 
     TiledMatrix tiledS(S, tile_sizeX, tile_sizeY);
-    int ntile_c = tiledS.ntile_c;
-    int ntile_r = tiledS.ntile_r;
+//    int ntile_c = tiledS.ntile_c;
+//    int ntile_r = tiledS.ntile_r;
 
     /* Populate rhs dense matrices */
     vector<float> W(S.n_rows * k); // 稠密矩阵 W, host 端数据
-    vector<float> W_t(S.n_rows * k); // 稠密矩阵 W, 可以注释掉的代码
+//    vector<float> W_t(S.n_rows * k); // 稠密矩阵 W, 可以注释掉的代码
     vector<float> H(S.n_cols * k); // 稠密矩阵 H, host 端数据
-    vector<float> H_t(S.n_cols * k); // 稠密矩阵 H, 可以注释掉的代码
+//    vector<float> H_t(S.n_cols * k); // 稠密矩阵 H, 可以注释掉的代码
 
     initial(W, S.n_rows, k); // 初始化稠密矩阵 W
     initial(H, S.n_cols, k); // 初始化稠密矩阵 H
-    make_HTasH(H, H_t, S.n_cols, k); // 可能是按照 COO 格式拷贝, 结果后面没有用到???
-    make_HTasH(W, W_t, S.n_rows, k); // 可能是按照 COO 格式拷贝, 结果后面没有用到???
+//    make_HTasH(H, H_t, S.n_cols, k); // 可能是按照 COO 格式拷贝, 结果后面没有用到???
+//    make_HTasH(W, W_t, S.n_rows, k); // 可能是按照 COO 格式拷贝, 结果后面没有用到???
 
     int *row_holder = new int[S.n_rows];
 
@@ -301,7 +301,7 @@ void preprocessing(const Matrix S) {
     cout << "\nmake_CSR_time = " << make_CSR_time << " ms" << endl;
 
     checkCuda(cudaEventRecord(start), __LINE__);
-    tiledS.max_active_row = rewrite_matrix_1D(S, tiledS, row_ptr, tile_sizeX, row_holder);
+    rewrite_matrix_1D(S, tiledS, row_ptr, tile_sizeX, row_holder);
     checkCuda(cudaEventRecord(stop), __LINE__);
     cudaEventSynchronize(stop);
     float rewrite_matrix_1D_time;

@@ -15,7 +15,7 @@ inline double seconds() {
 }
 
 int actv_row_size = 180; // 每个块中活跃行数
-int SM_CAPACITY = 6144;
+int SM_CAPACITY = 6144; // 
 int BLOCKSIZE = 512;
 
 class Matrix {
