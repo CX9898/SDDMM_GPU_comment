@@ -19,10 +19,10 @@ __global__ void comp_kernel_COO(int const *__restrict__ row_ind,
                                 int act_rlimit, // 活跃行的限制; 矩阵A的行数
                                 int sh_tile, // 默认输入为192
                                 int k_slc) {
-    unsigned int tId = threadIdx.x; // 在当前线程块中的线程ID
+    const unsigned int tId = threadIdx.x; // 在当前线程块中的线程ID
 
     // 如果tid是偶数, laneID则是0; 如果tid是奇数, laneID则是1. 在后面的代码中作用在确保不同线程尅并行处理不同的数据段, 避免了线程之间的数据竞争
-    unsigned int laneId = tId & 1;
+    const unsigned int laneId = tId & 1;
 
 //    unsigned int c = (blockIdx.x * blockDim.x + tId); // 唯一线程id, 结论是一个线程计算一个结果, c代表当前线程处理的结果矩阵的位置.
     int block_st = 0; // 用来指示当前线程块从哪个位置开始处理数据.保证每个线程块处理的数据区间是唯一的.
@@ -31,16 +31,16 @@ __global__ void comp_kernel_COO(int const *__restrict__ row_ind,
     } else {
         block_st = d_last_blockIdx[blockIdx.x - 1];
     }
-    int block_lim = d_last_blockIdx[blockIdx.x]; // 与block_st对应的结束索引
+    const int block_lim = d_last_blockIdx[blockIdx.x]; // 与block_st对应的结束索引
 
     __shared__ float sh_r[32 * 192]; // 共享内存储存密集矩阵A的切片数据
-    int WARP_ID = tId >> 5; // 得到当前线程在第几个线程束中.
-    int tid_in_WARP = tId & 31; // 表示线程在线程束内的索引. (如果tid为5(0101), tid & 31 的结果就是0101 & 11111 = 0101(5))
-    int WARP_SIZE = 32; // 线程束大小
+    const int WARP_ID = tId >> 5; // 得到当前线程在第几个线程束中.
+    const int tid_in_WARP = tId & 31; // 表示线程在线程束内的索引. (如果tid为5(0101), tid & 31 的结果就是0101 & 11111 = 0101(5))
+    const int WARP_SIZE = 32; // 线程束大小
 
-    int step = blockDim.x >> 5; // 每个线程束在处理数据时跨越的间隔
+    const int step = blockDim.x >> 5; // 每个线程束在处理数据时跨越的间隔
 
-    int t = tid_in_WARP; // 表示线程在线程束内的索引
+    const int t = tid_in_WARP; // 表示线程在线程束内的索引
 
     // sh_tile : 每个线程束应该处理的元素数量. (blockIdx.x * sh_tile + i) < act_rlimit：确保当前线程束处理的元素总数没有超出活动行的限制
     for (int i = WARP_ID; i < sh_tile && (blockIdx.x * sh_tile + i) < act_rlimit; i += step) {
@@ -50,24 +50,24 @@ __global__ void comp_kernel_COO(int const *__restrict__ row_ind,
 
     __syncthreads(); // 加载数据到共享内存中必须地同步操作.
 
-    // (tId >> 1)将线程的索引右移1位，相当于除以2，这可能是为了在每次迭代中处理两个元素，从而提高效率.
+    // (tId >> 1)将线程的索引右移1位，相当于除以2. 让两个线程处理一个非零元素. c每次增加256, 也就是一次循环中线程块处理256个非零元素.
     // c < block_lim 保证线程不会超出处理元素的区间.
     for (int c = block_st + (tId >> 1); c < block_lim; c += (blockDim.x >> 1)) {
 //        float sm = 0, g = 0;
         float sm1 = 0, sm2 = 0;
-        int row = row_ind[c];
-        int col = col_ind[c];
-        int sh_row = row - blockIdx.x * sh_tile; // 计算当前行在共享内存中的相对位置.
+        const int row = row_ind[c];
+        const int col = col_ind[c];
+        const int sh_row = row - blockIdx.x * sh_tile; // 计算当前行在共享内存中的相对位置.
 
         //for (int t = laneId*16; t < (laneId+1)*16; t+=8){
         // 每次处理8个元素, 这与float4数据类型的向量化操作相匹配. k_slc : 每个线程束处理密集矩阵的切片的元素数量
         for (int t = laneId * k_slc / 2; t < (laneId + 1) * k_slc / 2; t += 8) {
-            float4 rtmp1 = *((float4 * ) & sh_r[sh_row * k_slc + t]);
-            float4 ctmp1 = *((float4 * ) & matrixB[col * k + t_st + t]);
+            const float4 rtmp1 = *((float4 * ) & sh_r[sh_row * k_slc + t]);
+            const float4 ctmp1 = *((float4 * ) & matrixB[col * k + t_st + t]);
             sm1 += rtmp1.x * ctmp1.x + rtmp1.y * ctmp1.y + rtmp1.z * ctmp1.z + rtmp1.w * ctmp1.w;
 
-            float4 rtmp2 = *((float4 * ) & sh_r[sh_row * k_slc + t + 4]);
-            float4 ctmp2 = *((float4 * ) & matrixB[col * k + t_st + t + 4]);
+            const float4 rtmp2 = *((float4 * ) & sh_r[sh_row * k_slc + t + 4]);
+            const float4 ctmp2 = *((float4 * ) & matrixB[col * k + t_st + t + 4]);
             sm2 += rtmp2.x * ctmp2.x + rtmp2.y * ctmp2.y + rtmp2.z * ctmp2.z + rtmp2.w * ctmp2.w;
         }
         sm1 += __shfl_xor(sm1, 1); // 使用shuffle指令. 使线程0的sm1加到线程1的sm1上, 线程1的sm1加到线程2的sm2上
