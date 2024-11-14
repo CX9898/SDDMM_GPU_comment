@@ -278,7 +278,7 @@ void rewrite_col_sorted_matrix(int *row_ptr, int *row_ind, int *col_ind, float *
 int rewrite_matrix_1D(const Matrix S,
                       TiledMatrix &tS,
                       const int *row_ptr,
-                      const int TS, // 瓦片列大小
+                      const int TS, // 按列分的瓦片的列尺寸
                       const int *row_holder) {
 
     long new_idx = 0; // 初始化新矩阵的index
