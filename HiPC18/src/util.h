@@ -277,9 +277,10 @@ void rewrite_col_sorted_matrix(int *row_ptr, int *row_ind, int *col_ind, float *
 // 返回最大的活跃行数, 并且初始化瓦片矩阵tS
 int rewrite_matrix_1D(const Matrix S,
                       TiledMatrix &tS,
-                      const int *row_ptr,
+                      const int *row_ptr, // 每一行的第一个元素的index
                       const int TS, // 按列分的瓦片的列尺寸
-                      const int *row_holder) {
+                      const int *row_holder // 行ID
+                      ) {
 
     long new_idx = 0; // 初始化新矩阵的index
     long idx = 0; // 初始化原矩阵的index
@@ -298,7 +299,7 @@ int rewrite_matrix_1D(const Matrix S,
     for (int tile_lim = TS; tile_lim <= (n_cols + TS - 1); tile_lim += TS) { // 遍历每个瓦片,
         int block_count = 0; // 记录当前瓦片的块数
         int cur_block = 0;
-        int r = 0;
+
         tile_no = tile_lim / TS;
         tS.n_actv_row[tile_no - 1] = 0;
 
@@ -307,10 +308,10 @@ int rewrite_matrix_1D(const Matrix S,
         else
             tS.lastIdx_block_tile[tile_no * max_block_inAtile + 0] = new_idx;
 
-        for (int holder = 0; holder < n_rows; ++holder) {
-            r = row_holder[holder];
-            //for(int r = 0; r <n_rows; ++r){
-            if (tile_lim == TS) {
+        for (int holder = 0; holder < n_rows; ++holder) { // 遍历每一行
+            const int curRow = row_holder[holder]; // 当前行ID
+            //for(int curRow = 0; curRow <n_rows; ++curRow){
+            if (tile_lim == TS) { // 只有在第一次循环时
                 idx = row_ptr[holder];
                 row_lim[holder] = idx;
             } else idx = row_lim[holder];
@@ -337,7 +338,7 @@ int rewrite_matrix_1D(const Matrix S,
                 idx++;
             }
             if (idx != row_lim[holder]) {
-                tS.active_row[(tile_no - 1) * n_rows + tS.n_actv_row[tile_no - 1]++] = r;
+                tS.active_row[(tile_no - 1) * n_rows + tS.n_actv_row[tile_no - 1]++] = curRow;
                 // passive_row[(tile_no-1) * n_rows + holder] = tS.n_actv_row[tile_no-1]-1;  
                 cur_block++;
             }
