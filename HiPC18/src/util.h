@@ -52,7 +52,7 @@ class TiledMatrix {
   vector<int> active_row; // 活跃行, 大小为矩阵行数*按列分的瓦片数
 
   vector<int> lastIdx_block_tile; // 储存每个块中最后一个元素的index
-  vector<int> n_actv_row; // 储存每个块中活跃行数, 大小为按列分的瓦片数, 意味着值永远都是矩阵行数
+  vector<int> n_actv_row; // 储存每个块中活跃行数, 大小为按列分的瓦片数
 
   vector<int> lastIdx_tile; // 储存每个瓦片中最后一个元素的index, 大小为按列分的瓦片数
   vector<int> tiled_ind;
@@ -291,9 +291,9 @@ int rewrite_matrix_1D(const Matrix S,
 //    unsigned char c[4];
 //    int row = 0, col = 0;
 //    unsigned int final_int = 0, final_row, final_col;
-    long n_rows = S.n_rows; // 矩阵行数
-    long n_cols = S.n_cols; // 矩阵列数
-    vector<int> row_lim(n_rows);
+    const long n_rows = S.n_rows; // 矩阵行数
+    const long n_cols = S.n_cols; // 矩阵列数
+    vector<int> row_lim(n_rows); // 用于记录每一行在瓦片中的处理进度
 
     // #pragma omp parallel for 
     for (int tile_lim = TS; tile_lim <= (n_cols + TS - 1); tile_lim += TS) { // 遍历每个瓦片,
