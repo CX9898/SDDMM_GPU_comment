@@ -52,7 +52,7 @@ class TiledMatrix {
   vector<int> active_row; // 活跃行, 大小为矩阵行数*按列分的瓦片数
 
   vector<int> lastIdx_block_tile; // 储存每个块中最后一个元素的index
-  vector<int> n_actv_row; // 储存每个块中活跃行数, 大小为按列分的瓦片数
+  vector<int> n_actv_row; // 储存每个瓦片中活跃行数, 大小为按列分的瓦片数
 
   vector<int> lastIdx_tile; // 储存每个瓦片中最后一个元素的index, 大小为按列分的瓦片数
   vector<int> tiled_ind;
@@ -316,7 +316,7 @@ int rewrite_matrix_1D(const Matrix S,
                 row_lim[holder] = idx;
             } else idx = row_lim[holder];
 
-            while (S.cols[idx] < tile_lim && idx < row_ptr[holder + 1]) {
+            while (S.cols[idx] < tile_lim && idx < row_ptr[holder + 1]) { // 遍历属于当前tile和当前行的每一个元素
                 tS.tiled_ind[new_idx] = idx;
                 tS.rows[new_idx] = tS.n_actv_row[tile_no - 1];//S.rows[idx];
                 tS.cols[new_idx] = S.cols[idx];
@@ -337,7 +337,7 @@ int rewrite_matrix_1D(const Matrix S,
                 new_idx++;
                 idx++;
             }
-            if (idx != row_lim[holder]) {
+            if (idx != row_lim[holder]) { // 如果当前行有元素
                 tS.active_row[(tile_no - 1) * n_rows + tS.n_actv_row[tile_no - 1]++] = curRow;
                 // passive_row[(tile_no-1) * n_rows + holder] = tS.n_actv_row[tile_no-1]-1;  
                 cur_block++;
